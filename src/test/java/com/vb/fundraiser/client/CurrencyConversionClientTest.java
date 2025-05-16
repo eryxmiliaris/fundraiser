@@ -1,5 +1,7 @@
 package com.vb.fundraiser.client;
 
+import com.vb.fundraiser.exception.currency.CurrencyConversionException;
+import com.vb.fundraiser.model.response.CurrencyConversionResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,11 +36,12 @@ class CurrencyConversionClientTest {
         String from = "USD";
         String to = "PLN";
 
-        CurrencyConversionResponse resp = new CurrencyConversionResponse();
-        resp.setAmount(amount);
-        resp.setFrom(from);
-        resp.setTo(to);
-        resp.setResult(new BigDecimal("49.16947748517189"));
+        CurrencyConversionResponse resp = new CurrencyConversionResponse(
+                amount,
+                from,
+                to,
+                new BigDecimal("49.16947748517189")
+        );
 
         String expectedUrl = BASE_URL +
                 "?api_key=" + API_KEY +
@@ -53,33 +56,38 @@ class CurrencyConversionClientTest {
         BigDecimal result = client.convert(amount, from, to);
 
         // then
-        assertThat(result).isEqualByComparingTo(resp.getResult());
+        assertThat(result).isEqualByComparingTo(resp.result());
     }
 
     @Test
-    void givenNullApiResponse_whenConvert_thenThrowRuntimeException() {
+    void givenNullApiResponse_whenConvert_thenThrowCurrencyConversionException() {
         // given
+        BigDecimal amount = new BigDecimal("12.99");
+        String from = "USD";
+        String to = "PLN";
         when(mockRestTemplate.getForObject(anyString(), eq(CurrencyConversionResponse.class)))
                 .thenReturn(null);
 
         // when / then
-        assertThatThrownBy(() -> client.convert(BigDecimal.TEN, "EUR", "GBP"))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("Currency conversion failed");
+        assertThatThrownBy(() -> client.convert(amount, from, to))
+                .isInstanceOf(CurrencyConversionException.class)
+                .hasMessage("Currency conversion for amount " + amount + " from " + from + " to " + to + " failed");
     }
 
     @Test
-    void givenNullResultInResponse_whenConvert_thenThrowRuntimeException() {
+    void givenNullResultInResponse_whenConvert_thenThrowCurrencyConversionException() {
         // given
-        CurrencyConversionResponse resp = new CurrencyConversionResponse();
-        resp.setResult(null);
+        BigDecimal amount = BigDecimal.ONE;
+        String from = "EUR";
+        String to = "GBP";
+        CurrencyConversionResponse resp = new CurrencyConversionResponse(amount, from, to, null);
         when(mockRestTemplate.getForObject(anyString(), eq(CurrencyConversionResponse.class)))
                 .thenReturn(resp);
 
         // when / then
-        assertThatThrownBy(() -> client.convert(BigDecimal.ONE, "AUD", "CAD"))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("Currency conversion failed");
+        assertThatThrownBy(() -> client.convert(amount, from, to))
+                .isInstanceOf(CurrencyConversionException.class)
+                .hasMessage("Currency conversion for amount " + amount + " from " + from + " to " + to + " failed");
     }
 
     @Test

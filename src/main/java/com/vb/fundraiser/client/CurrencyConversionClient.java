@@ -1,5 +1,8 @@
 package com.vb.fundraiser.client;
 
+import com.vb.fundraiser.exception.currency.CurrencyConversionException;
+import com.vb.fundraiser.model.response.CurrencyConversionResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -8,6 +11,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.math.BigDecimal;
 
+@Slf4j
 @Component
 public class CurrencyConversionClient {
     private final RestTemplate restTemplate;
@@ -34,6 +38,7 @@ public class CurrencyConversionClient {
         if (!StringUtils.hasText(toCurrency)) {
             throw new IllegalArgumentException("To currency must not be blank");
         }
+        log.info("Converting amount {} from {} to {}", amount, fromCurrency, toCurrency);
 
         String url = UriComponentsBuilder.fromUriString(baseUrl)
                 .queryParam("api_key", apiKey)
@@ -43,10 +48,12 @@ public class CurrencyConversionClient {
                 .toUriString();
 
         CurrencyConversionResponse response = restTemplate.getForObject(url, CurrencyConversionResponse.class);
-        if (response == null || response.getResult() == null) {
-            throw new RuntimeException("Currency conversion failed");
+        if (response == null || response.result() == null) {
+            log.error("Currency conversion failed for amount {} from {} to {}", amount, fromCurrency, toCurrency);
+            throw new CurrencyConversionException(amount, fromCurrency, toCurrency);
         }
 
-        return response.getResult();
+        log.info("Currency converted result: {}", response.result());
+        return response.result();
     }
 }

@@ -1,6 +1,6 @@
 package com.vb.fundraiser.init;
 
-import com.vb.fundraiser.model.Currency;
+import com.vb.fundraiser.model.entity.Currency;
 import com.vb.fundraiser.repository.CurrencyRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,7 +24,7 @@ class CurrencyInitializerTest {
     @Test
     void givenCurrenciesNotInDatabase_whenInitCurrencies_thenInsertCurrenciesFromIso() {
         // given
-        when(currencyRepository.findByNameIgnoreCase(anyString()))
+        when(currencyRepository.findByCode(anyString()))
                 .thenReturn(Optional.empty());
 
         ArgumentCaptor<Currency> captor = ArgumentCaptor.forClass(Currency.class);
@@ -42,8 +42,8 @@ class CurrencyInitializerTest {
     @Test
     void givenAllCurrenciesExistInDatabase_whenInitCurrencies_thenSkipAllInserts() {
         // given
-        when(currencyRepository.findByNameIgnoreCase(anyString()))
-                .thenReturn(Optional.of(Currency.builder().name("EXISTING").build()));
+        when(currencyRepository.findByCode(anyString()))
+                .thenReturn(Optional.of(Currency.builder().code("EXISTING").build()));
 
         // when
         initializer.initCurrencies();
@@ -55,11 +55,11 @@ class CurrencyInitializerTest {
     @Test
     void givenSomeCurrenciesExist_whenInitCurrencies_thenSaveOnlyMissingOnes() {
         // given
-        when(currencyRepository.findByNameIgnoreCase(anyString()))
+        when(currencyRepository.findByCode(anyString()))
                 .thenAnswer(invocation -> {
                     String code = invocation.getArgument(0);
                     if (Set.of("USD", "EUR").contains(code)) {
-                        return Optional.of(Currency.builder().name(code).build());
+                        return Optional.of(Currency.builder().code(code).build());
                     }
                     return Optional.empty();
                 });
@@ -68,9 +68,9 @@ class CurrencyInitializerTest {
         initializer.initCurrencies();
 
         // then
-        verify(currencyRepository).save(argThat(c -> c.getName().equals("PLN")));
-        verify(currencyRepository).save(argThat(c -> c.getName().equals("JPY")));
-        verify(currencyRepository, never()).save(argThat(c -> c.getName().equals("USD")));
-        verify(currencyRepository, never()).save(argThat(c -> c.getName().equals("EUR")));
+        verify(currencyRepository).save(argThat(c -> c.getCode().equals("PLN")));
+        verify(currencyRepository).save(argThat(c -> c.getCode().equals("JPY")));
+        verify(currencyRepository, never()).save(argThat(c -> c.getCode().equals("USD")));
+        verify(currencyRepository, never()).save(argThat(c -> c.getCode().equals("EUR")));
     }
 }

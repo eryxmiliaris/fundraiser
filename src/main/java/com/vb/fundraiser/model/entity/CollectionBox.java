@@ -1,7 +1,10 @@
-package com.vb.fundraiser.model;
+package com.vb.fundraiser.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "collection_box")
@@ -18,4 +21,7 @@ public class CollectionBox {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_event")
     private FundraisingEvent event;
+
+    @OneToMany(mappedBy = "box", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<BoxCurrencyAmount> amounts = new ArrayList<>();
 }

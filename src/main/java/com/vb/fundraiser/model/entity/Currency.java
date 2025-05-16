@@ -1,4 +1,4 @@
-package com.vb.fundraiser.model;
+package com.vb.fundraiser.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -16,5 +16,5 @@ public class Currency {
     private Long id;
 
     @Column(nullable = false, unique = true, length = 3)
-    private String name;
+    private String code;
 }

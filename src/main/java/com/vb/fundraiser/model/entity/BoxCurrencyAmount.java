@@ -1,4 +1,4 @@
-package com.vb.fundraiser.model;
+package com.vb.fundraiser.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -27,6 +27,6 @@ public class BoxCurrencyAmount {
     @JoinColumn(name = "id_currency")
     private Currency currency;
 
-    @Column(nullable = false, precision = 20, scale = 2)
+    @Column(nullable = false, precision = 20, scale = 6)
     private BigDecimal amount;
 }

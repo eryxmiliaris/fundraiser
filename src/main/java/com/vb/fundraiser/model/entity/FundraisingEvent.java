@@ -1,4 +1,4 @@
-package com.vb.fundraiser.model;
+package com.vb.fundraiser.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -17,13 +17,13 @@ public class FundraisingEvent {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 50)
+    @Column(nullable = false)
     private String name;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_currency", nullable = false)
     private Currency currency;
 
-    @Column(nullable = false)
+    @Column(nullable = false, precision = 20, scale = 6)
     private BigDecimal accountBalance;
 }

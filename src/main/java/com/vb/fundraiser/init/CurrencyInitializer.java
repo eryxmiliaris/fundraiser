@@ -1,6 +1,6 @@
 package com.vb.fundraiser.init;
 
-import com.vb.fundraiser.model.Currency;
+import com.vb.fundraiser.model.entity.Currency;
 import com.vb.fundraiser.repository.CurrencyRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -23,11 +23,11 @@ public class CurrencyInitializer {
                 .collect(Collectors.toSet());
 
         long added = javaCurrencies.stream()
-                .filter(code -> currencyRepository.findByNameIgnoreCase(code).isEmpty())
-                .map(code -> Currency.builder().name(code).build())
+                .filter(code -> currencyRepository.findByCode(code).isEmpty())
+                .map(code -> Currency.builder().code(code).build())
                 .peek(currencyRepository::save)
                 .count();
 
-        log.info("Initialized {} ISO fiat currencies into the database.", added);
+        log.info("Initialized {} ISO fiat currencies into the database", added);
     }
 }
