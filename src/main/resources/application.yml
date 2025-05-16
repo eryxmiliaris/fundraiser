@@ -15,3 +15,8 @@ spring:
   h2:
     console:
       enabled: true
+
+currency:
+  unirate:
+    base-url: https://api.unirateapi.com/api/convert
+    api-key: ${UNIRATE_API_KEY}
