@@ -1,7 +1,6 @@
 package com.vb.fundraiser.controller;
 
 import com.vb.fundraiser.model.request.CreateEventRequest;
-import com.vb.fundraiser.model.dto.FinancialReportEntryDTO;
 import com.vb.fundraiser.model.dto.FundraisingEventDTO;
 import com.vb.fundraiser.service.FundraisingEventService;
 import jakarta.validation.Valid;
@@ -12,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/events")
+@RequestMapping("/api/v1/events")
 @RequiredArgsConstructor
 public class FundraisingEventController {
     private final FundraisingEventService eventService;
@@ -25,7 +24,7 @@ public class FundraisingEventController {
     }
 
     @GetMapping
-    public ResponseEntity<List<FinancialReportEntryDTO>> getFinancialReport() {
+    public ResponseEntity<List<FundraisingEventDTO>> getFinancialReport() {
         return ResponseEntity.ok(eventService.getFinancialReport());
     }
 }

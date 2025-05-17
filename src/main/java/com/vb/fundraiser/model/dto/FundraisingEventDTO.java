@@ -5,6 +5,6 @@ import java.math.BigDecimal;
 public record FundraisingEventDTO(
         Long id,
         String name,
-        String currency,
+        String currencyCode,
         BigDecimal accountBalance
 ) {}

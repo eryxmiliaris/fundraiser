@@ -12,7 +12,7 @@
 	<artifactId>fundraiser</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>fundraiser</name>
-	<description>An application for managing collection boxes during fundrising events for charity organizations</description>
+	<description>An application for managing collection boxes during fundraising events for charity organizations</description>
 	<url/>
 	<licenses>
 		<license/>
@@ -78,6 +78,16 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<argLine>
+						-javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar
+						-Xshare:off
+					</argLine>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

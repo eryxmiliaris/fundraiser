@@ -1,7 +1,6 @@
 package com.vb.fundraiser.service;
 
 import com.vb.fundraiser.model.request.CreateEventRequest;
-import com.vb.fundraiser.model.dto.FinancialReportEntryDTO;
 import com.vb.fundraiser.model.dto.FundraisingEventDTO;
 import com.vb.fundraiser.exception.currency.CurrencyNotFoundException;
 import com.vb.fundraiser.model.entity.Currency;
@@ -47,14 +46,15 @@ public class FundraisingEventService {
         );
     }
 
-    public List<FinancialReportEntryDTO> getFinancialReport() {
+    public List<FundraisingEventDTO> getFinancialReport() {
         List<FundraisingEvent> events = eventRepository.findAll();
 
-        List<FinancialReportEntryDTO> report = events.stream()
-                .map(event -> new FinancialReportEntryDTO(
+        List<FundraisingEventDTO> report = events.stream()
+                .map(event -> new FundraisingEventDTO(
+                        event.getId(),
                         event.getName(),
-                        event.getAccountBalance().setScale(2, RoundingMode.HALF_UP),
-                        event.getCurrency().getCode()
+                        event.getCurrency().getCode(),
+                        event.getAccountBalance().setScale(2, RoundingMode.HALF_UP)
                 ))
                 .toList();
 
