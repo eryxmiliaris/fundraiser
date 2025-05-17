@@ -1,4 +1,4 @@
-package com.vb.fundraiser.model.response;
+package com.vb.fundraiser.exception.response;
 
 import java.time.LocalDateTime;
 

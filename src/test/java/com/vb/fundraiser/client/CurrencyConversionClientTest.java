@@ -19,10 +19,14 @@ import static org.mockito.Mockito.*;
 class CurrencyConversionClientTest {
     @Mock
     private RestTemplate mockRestTemplate;
-    private static final String BASE_URL = "https://api.unirateapi.com/api/convert";
-    private static final String API_KEY = "TEST_KEY";
 
     private CurrencyConversionClient client;
+
+    private static final String BASE_URL = "https://api.unirateapi.com/api/convert";
+    private static final String API_KEY = "TEST_KEY";
+    private static final BigDecimal DEFAULT_AMOUNT = new BigDecimal("12.99");
+    private static final String DEFAULT_FROM_CURRENCY = "EUR";
+    private static final String DEFAULT_TO_CURRENCY = "USD";
 
     @BeforeEach
     void setUp() {
@@ -32,28 +36,24 @@ class CurrencyConversionClientTest {
     @Test
     void givenValidInput_whenConvert_thenReturnConvertedResult() {
         // given
-        BigDecimal amount = new BigDecimal("12.99");
-        String from = "USD";
-        String to = "PLN";
-
         CurrencyConversionResponse resp = new CurrencyConversionResponse(
-                amount,
-                from,
-                to,
+                DEFAULT_AMOUNT,
+                DEFAULT_FROM_CURRENCY,
+                DEFAULT_TO_CURRENCY,
                 new BigDecimal("49.16947748517189")
         );
 
         String expectedUrl = BASE_URL +
                 "?api_key=" + API_KEY +
-                "&amount=" + amount +
-                "&from=" + from +
-                "&to=" + to;
+                "&amount=" + DEFAULT_AMOUNT +
+                "&from=" + DEFAULT_FROM_CURRENCY +
+                "&to=" + DEFAULT_TO_CURRENCY;
 
         when(mockRestTemplate.getForObject(eq(expectedUrl), eq(CurrencyConversionResponse.class)))
                 .thenReturn(resp);
 
         // when
-        BigDecimal result = client.convert(amount, from, to);
+        BigDecimal result = client.convert(DEFAULT_AMOUNT, DEFAULT_FROM_CURRENCY, DEFAULT_TO_CURRENCY);
 
         // then
         assertThat(result).isEqualByComparingTo(resp.result());
@@ -62,47 +62,41 @@ class CurrencyConversionClientTest {
     @Test
     void givenNullApiResponse_whenConvert_thenThrowCurrencyConversionException() {
         // given
-        BigDecimal amount = new BigDecimal("12.99");
-        String from = "USD";
-        String to = "PLN";
         when(mockRestTemplate.getForObject(anyString(), eq(CurrencyConversionResponse.class)))
                 .thenReturn(null);
 
         // when / then
-        assertThatThrownBy(() -> client.convert(amount, from, to))
+        assertThatThrownBy(() -> client.convert(DEFAULT_AMOUNT, DEFAULT_FROM_CURRENCY, DEFAULT_TO_CURRENCY))
                 .isInstanceOf(CurrencyConversionException.class)
-                .hasMessage("Currency conversion for amount " + amount + " from " + from + " to " + to + " failed");
+                .hasMessage("Currency conversion for amount " + DEFAULT_AMOUNT + " from " + DEFAULT_FROM_CURRENCY + " to " + DEFAULT_TO_CURRENCY + " failed");
     }
 
     @Test
     void givenNullResultInResponse_whenConvert_thenThrowCurrencyConversionException() {
         // given
-        BigDecimal amount = BigDecimal.ONE;
-        String from = "EUR";
-        String to = "GBP";
-        CurrencyConversionResponse resp = new CurrencyConversionResponse(amount, from, to, null);
+        CurrencyConversionResponse resp = new CurrencyConversionResponse(DEFAULT_AMOUNT, DEFAULT_FROM_CURRENCY, DEFAULT_TO_CURRENCY, null);
         when(mockRestTemplate.getForObject(anyString(), eq(CurrencyConversionResponse.class)))
                 .thenReturn(resp);
 
         // when / then
-        assertThatThrownBy(() -> client.convert(amount, from, to))
+        assertThatThrownBy(() -> client.convert(DEFAULT_AMOUNT, DEFAULT_FROM_CURRENCY, DEFAULT_TO_CURRENCY))
                 .isInstanceOf(CurrencyConversionException.class)
-                .hasMessage("Currency conversion for amount " + amount + " from " + from + " to " + to + " failed");
+                .hasMessage("Currency conversion for amount " + DEFAULT_AMOUNT + " from " + DEFAULT_FROM_CURRENCY + " to " + DEFAULT_TO_CURRENCY + " failed");
     }
 
     @Test
     void givenNullArguments_whenConvert_thenThrowIllegalArgumentException() {
         // when / then
-        assertThatThrownBy(() -> client.convert(null, "USD", "EUR"))
+        assertThatThrownBy(() -> client.convert(null, DEFAULT_FROM_CURRENCY, DEFAULT_TO_CURRENCY))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Amount must not be null");
 
-        assertThatThrownBy(() -> client.convert(BigDecimal.TEN, null, "EUR"))
+        assertThatThrownBy(() -> client.convert(DEFAULT_AMOUNT, null, DEFAULT_TO_CURRENCY))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("From currency must not be blank");
+                .hasMessage("From currencyCode must not be blank");
 
-        assertThatThrownBy(() -> client.convert(BigDecimal.TEN, "USD", null))
+        assertThatThrownBy(() -> client.convert(DEFAULT_AMOUNT, DEFAULT_FROM_CURRENCY, null))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("To currency must not be blank");
+                .hasMessage("To currencyCode must not be blank");
     }
 }

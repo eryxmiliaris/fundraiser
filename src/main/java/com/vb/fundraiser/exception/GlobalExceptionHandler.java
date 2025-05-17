@@ -7,7 +7,7 @@ import com.vb.fundraiser.exception.box.NotEmptyBoxAssignmentException;
 import com.vb.fundraiser.exception.currency.CurrencyNotFoundException;
 import com.vb.fundraiser.exception.currency.InvalidMoneyAmountException;
 import com.vb.fundraiser.exception.event.FundraisingEventNotFoundException;
-import com.vb.fundraiser.model.response.ErrorResponse;
+import com.vb.fundraiser.exception.response.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
