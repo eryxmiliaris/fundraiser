@@ -22,6 +22,7 @@ public class CollectionBox {
     @JoinColumn(name = "id_event")
     private FundraisingEvent event;
 
+    @Builder.Default
     @OneToMany(mappedBy = "box", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<BoxCurrencyAmount> amounts = new ArrayList<>();
 }

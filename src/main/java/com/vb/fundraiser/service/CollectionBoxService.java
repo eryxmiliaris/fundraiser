@@ -13,7 +13,6 @@ import com.vb.fundraiser.model.entity.BoxCurrencyAmount;
 import com.vb.fundraiser.model.entity.CollectionBox;
 import com.vb.fundraiser.model.entity.Currency;
 import com.vb.fundraiser.model.entity.FundraisingEvent;
-import com.vb.fundraiser.repository.BoxCurrencyAmountRepository;
 import com.vb.fundraiser.repository.CollectionBoxRepository;
 import com.vb.fundraiser.repository.CurrencyRepository;
 import com.vb.fundraiser.repository.FundraisingEventRepository;
