@@ -36,29 +36,28 @@ public class FundraisingEventService {
                 .build();
         FundraisingEvent saved = eventRepository.save(event);
 
-        log.info("Created fundraising event with ID {}", saved.getId());
+        log.info("Created fundraising event '{}' in {} with ID {}", request.name(), currency.getCode(), saved.getId());
 
-        return new FundraisingEventDTO(
-                saved.getId(),
-                saved.getName(),
-                saved.getCurrency().getCode(),
-                saved.getAccountBalance()
-        );
+        return toDTO(saved);
     }
 
     public List<FundraisingEventDTO> getFinancialReport() {
         List<FundraisingEvent> events = eventRepository.findAll();
 
         List<FundraisingEventDTO> report = events.stream()
-                .map(event -> new FundraisingEventDTO(
-                        event.getId(),
-                        event.getName(),
-                        event.getCurrency().getCode(),
-                        event.getAccountBalance().setScale(2, RoundingMode.HALF_UP)
-                ))
+                .map(this::toDTO)
                 .toList();
 
         log.info("Financial report generated with {} entries", report.size());
         return report;
+    }
+
+    private FundraisingEventDTO toDTO(FundraisingEvent event) {
+        return new FundraisingEventDTO(
+                event.getId(),
+                event.getName(),
+                event.getCurrency().getCode(),
+                event.getAccountBalance().setScale(2, RoundingMode.HALF_UP)
+        );
     }
 }

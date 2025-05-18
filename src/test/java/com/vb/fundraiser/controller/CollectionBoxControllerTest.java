@@ -19,7 +19,6 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
@@ -44,7 +43,7 @@ class CollectionBoxControllerTest {
     private static final Long EVENT_ID = 100L;
 
     @Test
-    void givenBoxRegistered_whenPostRegisterNewBox_thenReturnDTO() throws Exception {
+    void givenBoxRegistered_whenRegisterNewBox_thenReturnDTO() throws Exception {
         // given
         CollectionBoxDTO dto = new CollectionBoxDTO(BOX_ID, false, true);
         when(boxService.registerNewBox()).thenReturn(dto);
@@ -69,7 +68,7 @@ class CollectionBoxControllerTest {
         // when / then
         mockMvc.perform(get("/api/v1/boxes"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()", is(2)));
+                .andExpect(jsonPath("$.length()").value(2));
     }
 
     @Test
@@ -80,13 +79,13 @@ class CollectionBoxControllerTest {
         // when / then
         mockMvc.perform(get("/api/v1/boxes"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()", is(0)));
+                .andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test
     void givenBoxExists_whenUnregisterBox_thenReturnSuccessMessage() throws Exception {
         // when / then
-        mockMvc.perform(delete("/api/v1/boxes/{id}", BOX_ID))
+        mockMvc.perform(delete("/api/v1/boxes/{boxId}", BOX_ID))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Box " + BOX_ID + " successfully unregistered")));
     }
@@ -97,7 +96,7 @@ class CollectionBoxControllerTest {
         doThrow(new BoxNotFoundException(BOX_ID)).when(boxService).unregisterBox(BOX_ID);
 
         // when / then
-        mockMvc.perform(delete("/api/v1/boxes/{id}", BOX_ID))
+        mockMvc.perform(delete("/api/v1/boxes/{boxId}", BOX_ID))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Collection box with ID " + BOX_ID + " not found"));
     }

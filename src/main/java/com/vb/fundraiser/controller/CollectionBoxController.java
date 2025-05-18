@@ -32,35 +32,35 @@ public class CollectionBoxController {
     }
 
     @Operation(summary = "Unregister (remove) a collection box")
-    @DeleteMapping("/{id}")
-    public ResponseEntity<String> unregisterBox(@PathVariable Long id) {
-        boxService.unregisterBox(id);
-        return ResponseEntity.ok("Box " + id + " successfully unregistered");
+    @DeleteMapping("/{boxId}")
+    public ResponseEntity<String> unregisterBox(@PathVariable Long boxId) {
+        boxService.unregisterBox(boxId);
+        return ResponseEntity.ok("Box " + boxId + " successfully unregistered");
     }
 
     @Operation(summary = "Assign a collection box to a fundraising event")
-    @PutMapping("/{id_box}/events/{id_event}")
+    @PutMapping("/{boxId}/events/{eventId}")
     public ResponseEntity<CollectionBoxDTO> assignBoxToEvent(
-            @PathVariable Long id_box,
-            @PathVariable Long id_event
+            @PathVariable Long boxId,
+            @PathVariable Long eventId
     ) {
-        return ResponseEntity.ok(boxService.assignBoxToEvent(id_box, id_event));
+        return ResponseEntity.ok(boxService.assignBoxToEvent(boxId, eventId));
     }
 
     @Operation(summary = "Add money to a collection box")
-    @PutMapping("/{id}/add-money")
+    @PutMapping("/{boxId}/add-money")
     public ResponseEntity<String> addMoney(
-            @PathVariable Long id,
+            @PathVariable Long boxId,
             @RequestBody @Valid AddMoneyRequest request
     ) {
-        boxService.addMoney(id, request.currencyCode(), request.amount());
-        return ResponseEntity.ok("Money successfully added to the box " + id);
+        boxService.addMoney(boxId, request.currencyCode(), request.amount());
+        return ResponseEntity.ok("Money successfully added to the box " + boxId);
     }
 
     @Operation(summary = "Empty the box (transfer money to assigned event)")
-    @PostMapping("/{id}/empty")
-    public ResponseEntity<String> emptyBox(@PathVariable Long id) {
-        boxService.emptyBox(id);
-        return ResponseEntity.ok("Box " + id + " successfully emptied");
+    @PostMapping("/{boxId}/empty")
+    public ResponseEntity<String> emptyBox(@PathVariable Long boxId) {
+        boxService.emptyBox(boxId);
+        return ResponseEntity.ok("Box " + boxId + " successfully emptied");
     }
 }

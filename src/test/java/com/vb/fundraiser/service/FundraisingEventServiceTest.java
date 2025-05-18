@@ -15,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,11 +35,11 @@ public class FundraisingEventServiceTest {
     @InjectMocks
     private FundraisingEventService eventService;
 
-    private Currency currency;
-
-    private static final String DEFAULT_EVENT_NAME = "Charity";
-    private static final String DEFAULT_CURRENCY_CODE = "EUR";
+    private static final String EVENT_NAME = "Charity";
+    private static final String CURRENCY_CODE = "EUR";
     private static final BigDecimal ZERO_BALANCE = BigDecimal.ZERO;
+
+    private Currency currency;
 
     @BeforeEach
     void setUp() {
@@ -48,15 +49,15 @@ public class FundraisingEventServiceTest {
     @Test
     void givenValidRequest_whenCreateEvent_thenReturnEventDTO() {
         // given
-        CreateEventRequest request = new CreateEventRequest(DEFAULT_EVENT_NAME, DEFAULT_CURRENCY_CODE);
+        CreateEventRequest request = new CreateEventRequest(EVENT_NAME, CURRENCY_CODE);
         FundraisingEvent saved = FundraisingEvent.builder()
                 .id(1L)
-                .name(DEFAULT_EVENT_NAME)
+                .name(EVENT_NAME)
                 .currency(currency)
                 .accountBalance(ZERO_BALANCE)
                 .build();
 
-        when(currencyRepository.findByCode(DEFAULT_CURRENCY_CODE)).thenReturn(Optional.of(currency));
+        when(currencyRepository.findByCode(CURRENCY_CODE)).thenReturn(Optional.of(currency));
         when(eventRepository.save(any())).thenReturn(saved);
 
         // when
@@ -65,16 +66,16 @@ public class FundraisingEventServiceTest {
         // then
         assertThat(result).isNotNull();
         assertThat(result.id()).isEqualTo(1L);
-        assertThat(result.name()).isEqualTo(DEFAULT_EVENT_NAME);
-        assertThat(result.currencyCode()).isEqualTo(DEFAULT_CURRENCY_CODE);
-        assertThat(result.accountBalance()).isEqualTo(ZERO_BALANCE);
+        assertThat(result.name()).isEqualTo(EVENT_NAME);
+        assertThat(result.currencyCode()).isEqualTo(CURRENCY_CODE);
+        assertThat(result.accountBalance()).isEqualTo(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
     }
 
     @Test
     void givenInvalidCurrency_whenCreateEvent_thenThrowCurrencyNotFoundException() {
         // given
         String invalidCurrencyCode = "ZZZ";
-        CreateEventRequest request = new CreateEventRequest(DEFAULT_EVENT_NAME, invalidCurrencyCode);
+        CreateEventRequest request = new CreateEventRequest(EVENT_NAME, invalidCurrencyCode);
         when(currencyRepository.findByCode(invalidCurrencyCode)).thenReturn(Optional.empty());
 
         // when / then
@@ -88,7 +89,7 @@ public class FundraisingEventServiceTest {
         // given
         FundraisingEvent event = FundraisingEvent.builder()
                 .id(1L)
-                .name(DEFAULT_EVENT_NAME)
+                .name(EVENT_NAME)
                 .currency(currency)
                 .accountBalance(new BigDecimal("123.45678"))
                 .build();
@@ -100,8 +101,8 @@ public class FundraisingEventServiceTest {
 
         // then
         assertThat(result).hasSize(1);
-        assertThat(result.getFirst().name()).isEqualTo(DEFAULT_EVENT_NAME);
-        assertThat(result.getFirst().currencyCode()).isEqualTo(DEFAULT_CURRENCY_CODE);
+        assertThat(result.getFirst().name()).isEqualTo(EVENT_NAME);
+        assertThat(result.getFirst().currencyCode()).isEqualTo(CURRENCY_CODE);
         assertThat(result.getFirst().accountBalance()).isEqualByComparingTo(new BigDecimal("123.46"));
     }
 

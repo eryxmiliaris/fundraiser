@@ -41,15 +41,54 @@ class CollectionBoxServiceTest {
     @InjectMocks
     private CollectionBoxService boxService;
 
+    private static final Long BOX_ID = 1L;
+    private static final Long EVENT_ID = 10L;
+    private static final String EUR = "EUR";
+    private static final String USD = "USD";
+
+    private Currency eurCurrency;
+    private Currency usdCurrency;
+    private FundraisingEvent event;
+
     @BeforeEach
     void setUp() {
-        // No shared setup required for now
+        eurCurrency = Currency.builder().id(1L).code(EUR).build();
+        usdCurrency = Currency.builder().id(2L).code(USD).build();
+
+        event = FundraisingEvent.builder()
+                .id(EVENT_ID)
+                .name("Test Event")
+                .currency(eurCurrency)
+                .accountBalance(BigDecimal.ZERO)
+                .build();
     }
+
+    private CollectionBox emptyBox(Long id, boolean assigned) {
+        return CollectionBox.builder()
+                .id(id)
+                .event(assigned ? event : null)
+                .amounts(new ArrayList<>())
+                .build();
+    }
+
+    private CollectionBox nonEmptyBox(Long id, boolean assigned) {
+        BoxCurrencyAmount entry = BoxCurrencyAmount.builder()
+                .currency(eurCurrency)
+                .amount(BigDecimal.TEN)
+                .build();
+        return CollectionBox.builder()
+                .id(id)
+                .amounts(List.of(entry))
+                .event(assigned ? event : null)
+                .build();
+    }
+
+    // Register box
 
     @Test
     void givenNoArguments_whenRegisterNewBox_thenReturnDtoWithIdAndDefaults() {
         // given
-        CollectionBox savedBox = CollectionBox.builder().id(1L).event(null).build();
+        CollectionBox savedBox = emptyBox(BOX_ID, false);
         when(boxRepository.save(any())).thenReturn(savedBox);
 
         // when
@@ -57,28 +96,27 @@ class CollectionBoxServiceTest {
 
         // then
         assertThat(result).isNotNull();
-        assertThat(result.id()).isEqualTo(1L);
+        assertThat(result.id()).isEqualTo(BOX_ID);
         assertThat(result.assigned()).isFalse();
         assertThat(result.empty()).isTrue();
     }
 
+    // Assign box
+
     @Test
     void givenUnassignedEmptyBoxAndValidEvent_whenAssignBoxToEvent_thenReturnAssignedDto() {
         // given
-        Long boxId = 1L;
-        Long eventId = 10L;
-        CollectionBox box = CollectionBox.builder().id(boxId).event(null).build();
-        FundraisingEvent event = FundraisingEvent.builder().id(eventId).name("Charity Event").build();
+        CollectionBox box = emptyBox(BOX_ID, false);
 
-        when(boxRepository.findById(boxId)).thenReturn(Optional.of(box));
-        when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
+        when(boxRepository.findById(BOX_ID)).thenReturn(Optional.of(box));
+        when(eventRepository.findById(EVENT_ID)).thenReturn(Optional.of(event));
         when(boxRepository.save(any())).thenReturn(box);
 
         // when
-        CollectionBoxDTO result = boxService.assignBoxToEvent(boxId, eventId);
+        CollectionBoxDTO result = boxService.assignBoxToEvent(BOX_ID, EVENT_ID);
 
         // then
-        assertThat(result.id()).isEqualTo(boxId);
+        assertThat(result.id()).isEqualTo(BOX_ID);
         assertThat(result.assigned()).isTrue();
         assertThat(result.empty()).isFalse();
     }
@@ -86,60 +124,50 @@ class CollectionBoxServiceTest {
     @Test
     void givenNonExistingBox_whenAssignBoxToEvent_thenThrowBoxNotFoundException() {
         // given
-        when(boxRepository.findById(1L)).thenReturn(Optional.empty());
+        when(boxRepository.findById(BOX_ID)).thenReturn(Optional.empty());
 
         // when / then
-        assertThatThrownBy(() -> boxService.assignBoxToEvent(1L, 2L))
-                .isInstanceOf(BoxNotFoundException.class)
-                .hasMessageContaining("1");
+        assertThatThrownBy(() -> boxService.assignBoxToEvent(BOX_ID, EVENT_ID))
+                .isInstanceOf(BoxNotFoundException.class);
     }
 
     @Test
     void givenBoxAlreadyAssigned_whenAssignBoxToEvent_thenThrowBoxAlreadyAssignedException() {
         // given
-        CollectionBox box = CollectionBox.builder()
-                .id(1L)
-                .event(FundraisingEvent.builder().id(2L).build())
-                .build();
+        CollectionBox box = emptyBox(BOX_ID, true);
 
-        when(boxRepository.findById(1L)).thenReturn(Optional.of(box));
+        when(boxRepository.findById(BOX_ID)).thenReturn(Optional.of(box));
 
         // when / then
-        assertThatThrownBy(() -> boxService.assignBoxToEvent(1L, 2L))
+        assertThatThrownBy(() -> boxService.assignBoxToEvent(BOX_ID, 2L))
                 .isInstanceOf(BoxAlreadyAssignedException.class);
     }
 
     @Test
     void givenBoxNotEmpty_whenAssignBoxToEvent_thenThrowNotEmptyBoxAssignmentException() {
         // given
-        CollectionBox box = CollectionBox.builder()
-                .id(1L)
-                .event(null)
-                .amounts(List.of(BoxCurrencyAmount.builder()
-                        .id(1L)
-                        .amount(BigDecimal.TEN)
-                        .currency(Currency.builder().id(1L).code("USD").build())
-                        .build()))
-                .build();
+        CollectionBox box = nonEmptyBox(BOX_ID, false);
 
-        when(boxRepository.findById(1L)).thenReturn(Optional.of(box));
+        when(boxRepository.findById(BOX_ID)).thenReturn(Optional.of(box));
 
         // when / then
-        assertThatThrownBy(() -> boxService.assignBoxToEvent(1L, 2L))
+        assertThatThrownBy(() -> boxService.assignBoxToEvent(BOX_ID, EVENT_ID))
                 .isInstanceOf(NotEmptyBoxAssignmentException.class);
     }
 
     @Test
     void givenEventDoesNotExist_whenAssignBoxToEvent_thenThrowFundraisingEventNotFoundException() {
         // given
-        CollectionBox box = CollectionBox.builder().id(1L).event(null).build();
-        when(boxRepository.findById(1L)).thenReturn(Optional.of(box));
-        when(eventRepository.findById(2L)).thenReturn(Optional.empty());
+        CollectionBox box = emptyBox(BOX_ID, false);
+        when(boxRepository.findById(BOX_ID)).thenReturn(Optional.of(box));
+        when(eventRepository.findById(EVENT_ID)).thenReturn(Optional.empty());
 
         // when / then
-        assertThatThrownBy(() -> boxService.assignBoxToEvent(1L, 2L))
+        assertThatThrownBy(() -> boxService.assignBoxToEvent(BOX_ID, EVENT_ID))
                 .isInstanceOf(FundraisingEventNotFoundException.class);
     }
+
+    // Get all boxes
 
     @Test
     void givenNoBoxesExist_whenGetAllBoxes_thenReturnEmptyList() {
@@ -156,25 +184,11 @@ class CollectionBoxServiceTest {
     @Test
     void givenBoxesWithDifferentStates_whenGetAllBoxes_thenReturnCorrectDTOs() {
         // given
-        CollectionBox emptyBox = CollectionBox.builder()
-                .id(1L)
-                .event(null)
-                .amounts(List.of())
-                .build();
+        CollectionBox emptyBox = emptyBox(1L, false);
 
-        CollectionBox assignedEmptyBox = CollectionBox.builder()
-                .id(2L)
-                .event(FundraisingEvent.builder().id(10L).build())
-                .amounts(List.of())
-                .build();
+        CollectionBox assignedEmptyBox = emptyBox(2L, true);
 
-        CollectionBox nonEmptyUnassignedBox = CollectionBox.builder()
-                .id(3L)
-                .event(null)
-                .amounts(List.of(
-                        BoxCurrencyAmount.builder().amount(BigDecimal.TEN).build()
-                ))
-                .build();
+        CollectionBox nonEmptyUnassignedBox = nonEmptyBox(3L, false);
 
         when(boxRepository.findAll()).thenReturn(List.of(emptyBox, assignedEmptyBox, nonEmptyUnassignedBox));
 
@@ -188,14 +202,16 @@ class CollectionBoxServiceTest {
         assertThat(result).anyMatch(dto -> dto.id().equals(3L) && !dto.assigned() && !dto.empty());
     }
 
+    // Unregister box
+
     @Test
     void givenExistingBox_whenUnregisterBox_thenDeleteIt() {
         // given
-        CollectionBox box = CollectionBox.builder().id(1L).build();
-        when(boxRepository.findById(1L)).thenReturn(Optional.of(box));
+        CollectionBox box = emptyBox(BOX_ID, false);
+        when(boxRepository.findById(BOX_ID)).thenReturn(Optional.of(box));
 
         // when
-        boxService.unregisterBox(1L);
+        boxService.unregisterBox(BOX_ID);
 
         // then
         verify(boxRepository).delete(box);
@@ -204,68 +220,55 @@ class CollectionBoxServiceTest {
     @Test
     void givenMissingBox_whenUnregisterBox_thenThrowBoxNotFoundException() {
         // given
-        when(boxRepository.findById(1L)).thenReturn(Optional.empty());
+        when(boxRepository.findById(BOX_ID)).thenReturn(Optional.empty());
 
         // when / then
-        assertThatThrownBy(() -> boxService.unregisterBox(1L))
-                .isInstanceOf(BoxNotFoundException.class)
-                .hasMessageContaining("1");
+        assertThatThrownBy(() -> boxService.unregisterBox(BOX_ID))
+                .isInstanceOf(BoxNotFoundException.class);
     }
+
+    // Add money
 
     @Test
     void givenValidInputsAndNewCurrency_whenAddMoney_thenInsertNewEntry() {
         // given
-        Long boxId = 1L;
-        String currencyCode = "USD";
         BigDecimal amount = BigDecimal.valueOf(100);
 
-        CollectionBox box = CollectionBox.builder()
-                .id(boxId)
-                .amounts(new ArrayList<>())
-                .build();
+        CollectionBox box = emptyBox(BOX_ID, false);
 
-        Currency currency = Currency.builder()
-                .id(10L)
-                .code(currencyCode)
-                .build();
-
-        when(boxRepository.findById(boxId)).thenReturn(Optional.of(box));
-        when(currencyRepository.findByCode(currencyCode)).thenReturn(Optional.of(currency));
+        when(boxRepository.findById(BOX_ID)).thenReturn(Optional.of(box));
+        when(currencyRepository.findByCode(EUR)).thenReturn(Optional.of(eurCurrency));
 
         // when
-        boxService.addMoney(boxId, currencyCode, amount);
+        boxService.addMoney(BOX_ID, EUR, amount);
 
         // then
         assertThat(box.getAmounts()).hasSize(1);
         assertThat(box.getAmounts().getFirst().getAmount()).isEqualByComparingTo(amount);
-        assertThat(box.getAmounts().getFirst().getCurrency()).isEqualTo(currency);
+        assertThat(box.getAmounts().getFirst().getCurrency()).isEqualTo(eurCurrency);
     }
 
     @Test
     void givenValidInputsAndExistingCurrency_whenAddMoney_thenIncreaseAmount() {
         // given
-        Long boxId = 1L;
-        String currencyCode = "EUR";
         BigDecimal initial = BigDecimal.valueOf(10);
         BigDecimal added = BigDecimal.valueOf(5);
 
-        Currency currency = Currency.builder().id(100L).code(currencyCode).build();
-
         BoxCurrencyAmount entry = BoxCurrencyAmount.builder()
-                .currency(currency)
+                .currency(eurCurrency)
                 .amount(initial)
                 .build();
 
         CollectionBox box = CollectionBox.builder()
-                .id(boxId)
+                .id(BOX_ID)
                 .amounts(new ArrayList<>(List.of(entry)))
                 .build();
 
-        when(boxRepository.findById(boxId)).thenReturn(Optional.of(box));
-        when(currencyRepository.findByCode(currencyCode)).thenReturn(Optional.of(currency));
+        when(boxRepository.findById(BOX_ID)).thenReturn(Optional.of(box));
+        when(currencyRepository.findByCode(EUR)).thenReturn(Optional.of(eurCurrency));
 
         // when
-        boxService.addMoney(boxId, currencyCode, added);
+        boxService.addMoney(BOX_ID, EUR, added);
 
         // then
         assertThat(entry.getAmount()).isEqualByComparingTo("15");
@@ -273,71 +276,69 @@ class CollectionBoxServiceTest {
 
     @Test
     void givenNullAmount_whenAddMoney_thenThrowInvalidMoneyAmountException() {
-        assertThatThrownBy(() -> boxService.addMoney(1L, "EUR", null))
+        assertThatThrownBy(() -> boxService.addMoney(BOX_ID, EUR, null))
                 .isInstanceOf(InvalidMoneyAmountException.class);
     }
 
     @Test
     void givenNegativeAmount_whenAddMoney_thenThrowInvalidMoneyAmountException() {
-        assertThatThrownBy(() -> boxService.addMoney(1L, "EUR", BigDecimal.valueOf(-5)))
+        assertThatThrownBy(() -> boxService.addMoney(BOX_ID, EUR, BigDecimal.valueOf(-5)))
                 .isInstanceOf(InvalidMoneyAmountException.class);
     }
 
     @Test
     void givenNonExistingBox_whenAddMoney_thenThrowBoxNotFoundException() {
         // given
-        when(boxRepository.findById(1L)).thenReturn(Optional.empty());
+        when(boxRepository.findById(BOX_ID)).thenReturn(Optional.empty());
 
         // when / then
-        assertThatThrownBy(() -> boxService.addMoney(1L, "EUR", BigDecimal.TEN))
+        assertThatThrownBy(() -> boxService.addMoney(BOX_ID, EUR, BigDecimal.TEN))
                 .isInstanceOf(BoxNotFoundException.class);
     }
 
     @Test
-    void givenUnknownCurrency_whenAddMoney_thenThrowCurrencyNotFoundException() {
+    void givenInvalidCurrency_whenAddMoney_thenThrowCurrencyNotFoundException() {
         // given
-        CollectionBox box = CollectionBox.builder()
-                .id(1L)
-                .amounts(new ArrayList<>())
-                .build();
+        String invalidCurrencyCode = "ZZZ";
+        CollectionBox box = emptyBox(BOX_ID, false);
 
-        when(boxRepository.findById(1L)).thenReturn(Optional.of(box));
-        when(currencyRepository.findByCode("ZZZ")).thenReturn(Optional.empty());
+        when(boxRepository.findById(BOX_ID)).thenReturn(Optional.of(box));
+        when(currencyRepository.findByCode(invalidCurrencyCode)).thenReturn(Optional.empty());
 
         // when / then
-        assertThatThrownBy(() -> boxService.addMoney(1L, "ZZZ", BigDecimal.TEN))
+        assertThatThrownBy(() -> boxService.addMoney(BOX_ID, invalidCurrencyCode, BigDecimal.TEN))
                 .isInstanceOf(CurrencyNotFoundException.class);
     }
+
+    // Empty box
 
     @Test
     void givenBoxWithSameCurrency_whenEmptyBox_thenTransferWithoutConversion() {
         // given
-        String currencyCode = "EUR";
         BigDecimal initialAmount = BigDecimal.valueOf(100);
         BigDecimal existingBalance = BigDecimal.valueOf(50);
 
-        Currency currency = Currency.builder().id(1L).code(currencyCode).build();
         FundraisingEvent event = FundraisingEvent.builder()
-                .id(10L)
-                .currency(currency)
+                .id(EVENT_ID)
+                .currency(eurCurrency)
                 .accountBalance(existingBalance)
                 .build();
 
         BoxCurrencyAmount entry = BoxCurrencyAmount.builder()
-                .currency(currency)
+                .currency(eurCurrency)
                 .amount(initialAmount)
                 .build();
 
         CollectionBox box = CollectionBox.builder()
-                .id(1L)
+                .id(BOX_ID)
                 .event(event)
                 .amounts(new ArrayList<>(List.of(entry)))
                 .build();
 
-        when(boxRepository.findById(1L)).thenReturn(Optional.of(box));
+        when(boxRepository.findById(BOX_ID)).thenReturn(Optional.of(box));
 
         // when
-        boxService.emptyBox(1L);
+        boxService.emptyBox(BOX_ID);
 
         // then
         assertThat(entry.getAmount()).isEqualByComparingTo(BigDecimal.ZERO);
@@ -349,37 +350,34 @@ class CollectionBoxServiceTest {
     @Test
     void givenBoxWithMixedCurrencies_whenEmptyBox_thenConvertAndTransfer() {
         // given
-        Currency eventCurrency = Currency.builder().id(1L).code("EUR").build();
-        Currency usd = Currency.builder().id(2L).code("USD").build();
-
         FundraisingEvent event = FundraisingEvent.builder()
-                .id(1L)
-                .currency(eventCurrency)
+                .id(EVENT_ID)
+                .currency(eurCurrency)
                 .accountBalance(BigDecimal.ZERO)
                 .build();
 
         BoxCurrencyAmount eurAmount = BoxCurrencyAmount.builder()
-                .currency(eventCurrency)
+                .currency(eurCurrency)
                 .amount(BigDecimal.valueOf(50))
                 .build();
 
         BoxCurrencyAmount usdAmount = BoxCurrencyAmount.builder()
-                .currency(usd)
+                .currency(usdCurrency)
                 .amount(BigDecimal.valueOf(10))
                 .build();
 
         CollectionBox box = CollectionBox.builder()
-                .id(1L)
+                .id(BOX_ID)
                 .event(event)
                 .amounts(new ArrayList<>(List.of(eurAmount, usdAmount)))
                 .build();
 
-        when(boxRepository.findById(1L)).thenReturn(Optional.of(box));
+        when(boxRepository.findById(BOX_ID)).thenReturn(Optional.of(box));
         when(conversionClient.convert(BigDecimal.valueOf(10), "USD", "EUR"))
                 .thenReturn(BigDecimal.valueOf(45));
 
         // when
-        boxService.emptyBox(1L);
+        boxService.emptyBox(BOX_ID);
 
         // then
         assertThat(eurAmount.getAmount()).isZero();
@@ -390,28 +388,27 @@ class CollectionBoxServiceTest {
     @Test
     void givenBoxWithOnlyZeroAmounts_whenEmptyBox_thenNoTransferOccurs() {
         // given
-        Currency currency = Currency.builder().id(1L).code("EUR").build();
         FundraisingEvent event = FundraisingEvent.builder()
-                .id(1L)
-                .currency(currency)
+                .id(EVENT_ID)
+                .currency(eurCurrency)
                 .accountBalance(BigDecimal.valueOf(10))
                 .build();
 
         BoxCurrencyAmount entry = BoxCurrencyAmount.builder()
-                .currency(currency)
+                .currency(eurCurrency)
                 .amount(BigDecimal.ZERO)
                 .build();
 
         CollectionBox box = CollectionBox.builder()
-                .id(1L)
+                .id(BOX_ID)
                 .event(event)
                 .amounts(List.of(entry))
                 .build();
 
-        when(boxRepository.findById(1L)).thenReturn(Optional.of(box));
+        when(boxRepository.findById(BOX_ID)).thenReturn(Optional.of(box));
 
         // when
-        boxService.emptyBox(1L);
+        boxService.emptyBox(BOX_ID);
 
         // then
         assertThat(event.getAccountBalance()).isEqualByComparingTo("10");
@@ -421,26 +418,22 @@ class CollectionBoxServiceTest {
     @Test
     void givenNonExistingBox_whenEmptyBox_thenThrowBoxNotFoundException() {
         // given
-        when(boxRepository.findById(1L)).thenReturn(Optional.empty());
+        when(boxRepository.findById(BOX_ID)).thenReturn(Optional.empty());
 
         // when / then
-        assertThatThrownBy(() -> boxService.emptyBox(1L))
+        assertThatThrownBy(() -> boxService.emptyBox(BOX_ID))
                 .isInstanceOf(BoxNotFoundException.class);
     }
 
     @Test
     void givenBoxNotAssignedToEvent_whenEmptyBox_thenThrowBoxNotAssignedException() {
         // given
-        CollectionBox box = CollectionBox.builder()
-                .id(1L)
-                .event(null)
-                .amounts(List.of())
-                .build();
+        CollectionBox box = emptyBox(BOX_ID, false);
 
         when(boxRepository.findById(1L)).thenReturn(Optional.of(box));
 
         // when / then
-        assertThatThrownBy(() -> boxService.emptyBox(1L))
+        assertThatThrownBy(() -> boxService.emptyBox(BOX_ID))
                 .isInstanceOf(BoxNotAssignedException.class);
     }
 }

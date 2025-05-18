@@ -7,12 +7,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
-@Slf4j
 public class CurrencyInitializer {
     private final CurrencyRepository currencyRepository;
 
@@ -22,12 +23,18 @@ public class CurrencyInitializer {
                 .map(java.util.Currency::getCurrencyCode)
                 .collect(Collectors.toSet());
 
-        long added = javaCurrencies.stream()
-                .filter(code -> currencyRepository.findByCode(code).isEmpty())
-                .map(code -> Currency.builder().code(code).build())
-                .peek(currencyRepository::save)
-                .count();
+        Set<String> existingCodes = currencyRepository.findAll().stream()
+                .map(Currency::getCode)
+                .collect(Collectors.toSet());
 
-        log.info("Initialized {} ISO fiat currencies into the database", added);
+        List<Currency> newCurrencies = javaCurrencies.stream()
+                .filter(code -> !existingCodes.contains(code))
+                .map(code -> Currency.builder().code(code).build())
+                .toList();
+
+        if (!newCurrencies.isEmpty()) {
+            currencyRepository.saveAll(newCurrencies);
+            log.info("Initialized {} ISO fiat currencies into the database", newCurrencies.size());
+        }
     }
 }

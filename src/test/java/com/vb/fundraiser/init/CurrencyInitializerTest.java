@@ -7,8 +7,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Optional;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -21,56 +22,61 @@ class CurrencyInitializerTest {
     @InjectMocks
     private CurrencyInitializer initializer;
 
-    @Test
-    void givenCurrenciesNotInDatabase_whenInitCurrencies_thenInsertCurrenciesFromIso() {
-        // given
-        when(currencyRepository.findByCode(anyString()))
-                .thenReturn(Optional.empty());
+    private final Set<String> isoCodes = java.util.Currency.getAvailableCurrencies().stream()
+            .map(java.util.Currency::getCurrencyCode)
+            .collect(Collectors.toSet());
 
-        ArgumentCaptor<Currency> captor = ArgumentCaptor.forClass(Currency.class);
+    @Test
+    void givenNoCurrenciesInDatabase_whenInitCurrencies_thenInsertAllJavaCurrencies() {
+        // given
+        when(currencyRepository.findAll()).thenReturn(List.of());
+
+        ArgumentCaptor<List<Currency>> captor = ArgumentCaptor.forClass(List.class);
 
         // when
         initializer.initCurrencies();
 
         // then
-        int expectedCount = java.util.Currency.getAvailableCurrencies().size();
-        verify(currencyRepository, times(expectedCount)).save(captor.capture());
+        int expectedCount = isoCodes.size();
 
-        assertThat(captor.getAllValues()).hasSize(expectedCount);
+        verify(currencyRepository).saveAll(captor.capture());
+        List<Currency> saved = captor.getValue();
+
+        assertThat(saved).hasSize(expectedCount);
     }
 
     @Test
     void givenAllCurrenciesExistInDatabase_whenInitCurrencies_thenSkipAllInserts() {
         // given
-        when(currencyRepository.findByCode(anyString()))
-                .thenReturn(Optional.of(Currency.builder().code("EXISTING").build()));
+        List<Currency> existing = isoCodes.stream()
+                .map(code -> Currency.builder().code(code).build())
+                .toList();
+
+        when(currencyRepository.findAll()).thenReturn(existing);
 
         // when
         initializer.initCurrencies();
 
         // then
-        verify(currencyRepository, never()).save(any());
+        verify(currencyRepository, never()).saveAll(any());
     }
 
     @Test
     void givenSomeCurrenciesExist_whenInitCurrencies_thenSaveOnlyMissingOnes() {
         // given
-        when(currencyRepository.findByCode(anyString()))
-                .thenAnswer(invocation -> {
-                    String code = invocation.getArgument(0);
-                    if (Set.of("USD", "EUR").contains(code)) {
-                        return Optional.of(Currency.builder().code(code).build());
-                    }
-                    return Optional.empty();
-                });
+        Currency usd = Currency.builder().code("USD").build();
+        Currency eur = Currency.builder().code("EUR").build();
+        when(currencyRepository.findAll()).thenReturn(List.of(usd, eur));
+
+        ArgumentCaptor<List<Currency>> captor = ArgumentCaptor.forClass(List.class);
 
         // when
         initializer.initCurrencies();
 
         // then
-        verify(currencyRepository).save(argThat(c -> c.getCode().equals("PLN")));
-        verify(currencyRepository).save(argThat(c -> c.getCode().equals("JPY")));
-        verify(currencyRepository, never()).save(argThat(c -> c.getCode().equals("USD")));
-        verify(currencyRepository, never()).save(argThat(c -> c.getCode().equals("EUR")));
+        verify(currencyRepository).saveAll(captor.capture());
+        List<Currency> saved = captor.getValue();
+
+        assertThat(saved).allMatch(c -> !List.of("USD", "EUR").contains(c.getCode()));
     }
 }

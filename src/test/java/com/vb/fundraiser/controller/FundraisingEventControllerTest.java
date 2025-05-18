@@ -36,21 +36,21 @@ class FundraisingEventControllerTest {
     @MockitoBean
     private FundraisingEventService eventService;
 
-    private static final String DEFAULT_EVENT_NAME = "Charity";
-    private static final String DEFAULT_CURRENCY_CODE = "EUR";
-    private static final BigDecimal DEFAULT_AMOUNT = BigDecimal.ZERO;
+    private static final String EVENT_NAME = "Charity";
+    private static final String CURRENCY_CODE = "EUR";
+    private static final BigDecimal AMOUNT = BigDecimal.ZERO;
 
     private FundraisingEventDTO eventDto;
 
     @BeforeEach
     void setUp() {
-        eventDto = new FundraisingEventDTO(1L, DEFAULT_EVENT_NAME, DEFAULT_CURRENCY_CODE, DEFAULT_AMOUNT);
+        eventDto = new FundraisingEventDTO(1L, EVENT_NAME, CURRENCY_CODE, AMOUNT);
     }
 
     @Test
     void givenValidRequest_whenCreateEvent_thenReturnEventDTO() throws Exception {
         // given
-        CreateEventRequest request = new CreateEventRequest(DEFAULT_EVENT_NAME, DEFAULT_CURRENCY_CODE);
+        CreateEventRequest request = new CreateEventRequest(EVENT_NAME, CURRENCY_CODE);
         when(eventService.createEvent(Mockito.any())).thenReturn(eventDto);
 
         // when / then
@@ -59,16 +59,16 @@ class FundraisingEventControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L))
-                .andExpect(jsonPath("$.name").value(DEFAULT_EVENT_NAME))
-                .andExpect(jsonPath("$.currencyCode").value(DEFAULT_CURRENCY_CODE))
-                .andExpect(jsonPath("$.accountBalance").value(DEFAULT_AMOUNT));
+                .andExpect(jsonPath("$.name").value(EVENT_NAME))
+                .andExpect(jsonPath("$.currencyCode").value(CURRENCY_CODE))
+                .andExpect(jsonPath("$.accountBalance").value(AMOUNT));
     }
 
     @Test
     void givenInvalidCurrency_whenCreateEvent_thenThrowCurrencyNotFoundException() throws Exception {
         // given
         String invalidCurrencyCode = "ZZZ";
-        CreateEventRequest request = new CreateEventRequest(DEFAULT_EVENT_NAME, invalidCurrencyCode);
+        CreateEventRequest request = new CreateEventRequest(EVENT_NAME, invalidCurrencyCode);
         when(eventService.createEvent(Mockito.any()))
                 .thenThrow(new CurrencyNotFoundException(invalidCurrencyCode));
 
@@ -83,7 +83,7 @@ class FundraisingEventControllerTest {
     @Test
     void givenBlankName_whenCreateEvent_thenReturnBadRequest() throws Exception {
         // given
-        CreateEventRequest request = new CreateEventRequest("", DEFAULT_CURRENCY_CODE);
+        CreateEventRequest request = new CreateEventRequest("", CURRENCY_CODE);
 
         // when / then
         mockMvc.perform(post("/api/v1/events")
@@ -95,7 +95,7 @@ class FundraisingEventControllerTest {
     @Test
     void givenBlankCurrency_whenCreateEvent_thenReturnBadRequest() throws Exception {
         // given
-        CreateEventRequest request = new CreateEventRequest(DEFAULT_EVENT_NAME, "");
+        CreateEventRequest request = new CreateEventRequest(EVENT_NAME, "");
 
         // when / then
         mockMvc.perform(post("/api/v1/events")
@@ -107,7 +107,7 @@ class FundraisingEventControllerTest {
     @Test
     void givenInvalidCurrencyFormat_whenCreateEvent_thenReturnBadRequest() throws Exception {
         // given
-        CreateEventRequest request = new CreateEventRequest(DEFAULT_EVENT_NAME, "eur");
+        CreateEventRequest request = new CreateEventRequest(EVENT_NAME, "eur");
 
         // when / then
         mockMvc.perform(post("/api/v1/events")
@@ -124,9 +124,9 @@ class FundraisingEventControllerTest {
         // when / then
         mockMvc.perform(get("/api/v1/events"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].name").value(DEFAULT_EVENT_NAME))
-                .andExpect(jsonPath("$[0].accountBalance").value(DEFAULT_AMOUNT))
-                .andExpect(jsonPath("$[0].currencyCode").value(DEFAULT_CURRENCY_CODE));
+                .andExpect(jsonPath("$[0].name").value(EVENT_NAME))
+                .andExpect(jsonPath("$[0].accountBalance").value(AMOUNT))
+                .andExpect(jsonPath("$[0].currencyCode").value(CURRENCY_CODE));
     }
 
     @Test

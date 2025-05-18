@@ -1,7 +1,7 @@
 package com.vb.fundraiser.client;
 
 import com.vb.fundraiser.exception.currency.CurrencyConversionException;
-import com.vb.fundraiser.model.response.CurrencyConversionResponse;
+import com.vb.fundraiser.client.response.CurrencyConversionResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -29,15 +29,7 @@ public class CurrencyConversionClient {
     }
 
     public BigDecimal convert(BigDecimal amount, String fromCurrency, String toCurrency) {
-        if (amount == null) {
-            throw new IllegalArgumentException("Amount must not be null");
-        }
-        if (!StringUtils.hasText(fromCurrency)) {
-            throw new IllegalArgumentException("From currency must not be blank");
-        }
-        if (!StringUtils.hasText(toCurrency)) {
-            throw new IllegalArgumentException("To currency must not be blank");
-        }
+        validateInput(amount, fromCurrency, toCurrency);
         log.info("Converting amount {} from {} to {}", amount, fromCurrency, toCurrency);
 
         String url = UriComponentsBuilder.fromUriString(baseUrl)
@@ -55,5 +47,17 @@ public class CurrencyConversionClient {
 
         log.info("Currency converted result: {}", response.result());
         return response.result();
+    }
+
+    private void validateInput(BigDecimal amount, String fromCurrency, String toCurrency) {
+        if (amount == null) {
+            throw new IllegalArgumentException("Amount must not be null");
+        }
+        if (!StringUtils.hasText(fromCurrency)) {
+            throw new IllegalArgumentException("From currency must not be blank");
+        }
+        if (!StringUtils.hasText(toCurrency)) {
+            throw new IllegalArgumentException("To currency must not be blank");
+        }
     }
 }
