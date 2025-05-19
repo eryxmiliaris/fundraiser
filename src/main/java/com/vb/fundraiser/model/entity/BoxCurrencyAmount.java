@@ -29,4 +29,8 @@ public class BoxCurrencyAmount {
 
     @Column(nullable = false, precision = 20, scale = 6)
     private BigDecimal amount;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean isDeleted = false;
 }

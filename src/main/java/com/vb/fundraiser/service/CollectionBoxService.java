@@ -1,10 +1,7 @@
 package com.vb.fundraiser.service;
 
 import com.vb.fundraiser.client.CurrencyConversionClient;
-import com.vb.fundraiser.exception.box.BoxAlreadyAssignedException;
-import com.vb.fundraiser.exception.box.BoxNotAssignedException;
-import com.vb.fundraiser.exception.box.BoxNotFoundException;
-import com.vb.fundraiser.exception.box.NotEmptyBoxAssignmentException;
+import com.vb.fundraiser.exception.box.*;
 import com.vb.fundraiser.exception.currency.CurrencyNotFoundException;
 import com.vb.fundraiser.exception.currency.InvalidMoneyAmountException;
 import com.vb.fundraiser.exception.event.FundraisingEventNotFoundException;
@@ -16,13 +13,17 @@ import com.vb.fundraiser.model.entity.FundraisingEvent;
 import com.vb.fundraiser.repository.CollectionBoxRepository;
 import com.vb.fundraiser.repository.CurrencyRepository;
 import com.vb.fundraiser.repository.FundraisingEventRepository;
+import com.vb.fundraiser.util.PaginationValidator;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -36,35 +37,51 @@ public class CollectionBoxService {
     private final CurrencyConversionClient conversionClient;
 
     public CollectionBoxDTO registerNewBox() {
-        CollectionBox box = CollectionBox.builder().event(null).build();
-        CollectionBox saved = boxRepository.save(box);
+        CollectionBox saved = boxRepository.save(CollectionBox.builder().event(null).build());
 
         log.info("Registered new collection box with ID {}", saved.getId());
         return new CollectionBoxDTO(saved.getId(), false, true);
     }
 
-    public List<CollectionBoxDTO> getAllBoxes() {
-        List<CollectionBoxDTO> boxes = boxRepository.findAll().stream()
+    public Page<CollectionBoxDTO> getAllBoxes(
+            int pageNumber,
+            int pageSize,
+            String sortDirection
+    ) {
+        String sortBy = "id";
+        PaginationValidator.validate(pageNumber, pageSize, sortDirection);
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(PaginationValidator.parseDirection(sortDirection), sortBy));
+
+        Page<CollectionBox> boxes = boxRepository.findByIsDeletedFalse(pageable);
+
+        Page<CollectionBoxDTO> dtos = boxes
                 .map(box -> new CollectionBoxDTO(
                         box.getId(),
                         box.getEvent() != null,
-                        isBoxEmpty(box)))
-                .toList();
+                        isBoxEmpty(box))
+                );
 
-        log.info("Fetched {} collection boxes", boxes.size());
-        return boxes;
+        log.info("Boxes page retrieved: page {}, size {}, totalElements {}",
+                dtos.getNumber(), dtos.getSize(), dtos.getTotalElements());
+        return dtos;
     }
 
     public void unregisterBox(Long boxId) {
-        CollectionBox box = boxRepository.findById(boxId)
-                .orElseThrow(() -> new BoxNotFoundException(boxId));
-        boxRepository.delete(box);
+        CollectionBox box = boxRepository.findByIdAndIsDeletedFalse(boxId)
+                .orElseThrow(() -> {
+                    log.warn("Box with ID {} not found for unregistering", boxId);
+                    return new BoxNotFoundException(boxId);
+                });
 
-        log.info("Unregistered box with ID {} and deleted its currency amounts", boxId);
+        box.setDeleted(true);
+        box.getAmounts().forEach(a -> a.setDeleted(true));
+        boxRepository.save(box);
+
+        log.info("Unregistered box with ID {} and unregistered its currency amounts", boxId);
     }
 
     public CollectionBoxDTO assignBoxToEvent(Long boxId, Long eventId) {
-        CollectionBox box = boxRepository.findById(boxId)
+        CollectionBox box = boxRepository.findByIdAndIsDeletedFalse(boxId)
                 .orElseThrow(() -> {
                     log.warn("Box with ID {} not found for assignment", boxId);
                     return new BoxNotFoundException(boxId);
@@ -100,11 +117,16 @@ public class CollectionBoxService {
             throw new InvalidMoneyAmountException(amount);
         }
 
-        CollectionBox box = boxRepository.findById(boxId)
+        CollectionBox box = boxRepository.findByIdAndIsDeletedFalse(boxId)
                 .orElseThrow(() -> {
                     log.warn("Box with ID {} not found for adding money", boxId);
                     return new BoxNotFoundException(boxId);
                 });
+
+        if (box.getEvent() == null) {
+            log.warn("Attempt to add money to box {} which is not assigned to an event", boxId);
+            throw new BoxNotAssignedException(boxId);
+        }
 
         Currency currency = currencyRepository.findByCode(currencyCode)
                 .orElseThrow(() -> {
@@ -134,7 +156,7 @@ public class CollectionBoxService {
 
     @Transactional
     public void emptyBox(Long boxId) {
-        CollectionBox box = boxRepository.findById(boxId)
+        CollectionBox box = boxRepository.findByIdAndIsDeletedFalse(boxId)
                 .orElseThrow(() -> {
                     log.warn("Box with ID {} not found for emptying", boxId);
                     return new BoxNotFoundException(boxId);
@@ -144,6 +166,11 @@ public class CollectionBoxService {
         if (event == null) {
             log.warn("Attempted to empty box {} not assigned to any event", boxId);
             throw new BoxNotAssignedException(boxId);
+        }
+
+        if (isBoxEmpty(box)) {
+            log.warn("Attempt to transfer money from box {} which is empty", boxId);
+            throw new EmptyBoxMoneyTransferException(boxId);
         }
 
         Currency targetCurrency = event.getCurrency();

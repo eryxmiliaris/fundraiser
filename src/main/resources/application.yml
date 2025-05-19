@@ -20,4 +20,4 @@ spring:
 currency:
   unirate:
     base-url: https://api.unirateapi.com/api/convert
-    api-key: ${UNIRATE_API_KEY}
+    api-key: ${UNIRATE_API_KEY:provide_your_api_key}

@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
@@ -83,6 +85,18 @@ class CurrencyConversionClientTest {
         assertThatThrownBy(() -> client.convert(AMOUNT, FROM, TO))
                 .isInstanceOf(CurrencyConversionException.class)
                 .hasMessage("Currency conversion for amount " + AMOUNT + " from " + FROM + " to " + TO + " failed");
+    }
+
+    @Test
+    void givenUnauthorizedFromApi_whenConvert_thenThrowUnauthorizedHandledByControllerAdvice() {
+        // given
+        when(mockRestTemplate.getForObject(anyString(), eq(CurrencyConversionResponse.class)))
+                .thenThrow(HttpClientErrorException.create("", HttpStatusCode.valueOf(401), null, null, null, null));
+
+        // when / then
+        assertThatThrownBy(() ->
+                client.convert(BigDecimal.TEN, "USD", "EUR"))
+                .isInstanceOf(HttpClientErrorException.Unauthorized.class);
     }
 
     @Test

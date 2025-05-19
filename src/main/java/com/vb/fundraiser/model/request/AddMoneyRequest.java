@@ -1,5 +1,6 @@
 package com.vb.fundraiser.model.request;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
@@ -7,7 +8,7 @@ import java.math.BigDecimal;
 public record AddMoneyRequest(
     @NotBlank(message = "Currency code must not be blank")
     @Size(min = 3, max = 3, message = "Currency code must be 3 characters")
-    @Pattern(regexp = "^[A-Z]{3}$", message = "Currency code must be 3 uppercase letters")
+    @Schema(example = "USD")
     String currencyCode,
 
     @NotNull(message = "Amount must not be null")
