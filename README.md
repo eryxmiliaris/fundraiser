@@ -7,7 +7,7 @@ This is a Spring Boot RESTful API for managing charity fundraising events and co
 ## Table of Contents
 
 1. [Features](#features)
-2. [Getting Started](#getting-started)
+2. [Getting Started & Running](#getting-started--running)
 3. [Running Tests](#running-tests)
 4. [API Overview](#api-overview)
 5. [Swagger API Docs](#swagger-api-docs)
@@ -22,7 +22,7 @@ This is a Spring Boot RESTful API for managing charity fundraising events and co
 * Create, assign, and track collection boxes
 * Add and convert monetary donations in different currencies
 * Auto-convert funds to the event’s currency on box emptying
-* Generate financial reports
+* Generate financial reports (JSON and HTML)
 * Integration with online currency conversion API
 * API documentation via Swagger UI
 * Input validation and exception handling
@@ -30,55 +30,89 @@ This is a Spring Boot RESTful API for managing charity fundraising events and co
 
 ---
 
-## Getting Started
+## Getting Started & Running
 
-1. **Clone the repository**
+### 1. Clone the Repository
 
-   ```bash
-   git clone https://github.com/eryxmiliaris/fundraiser.git
-   cd fundraiser
-   ```
+```bash
+git clone https://github.com/eryxmiliaris/fundraiser.git
+cd fundraiser
+```
 
-2. **Set the Unirate API key as an environment variable**
+### 2. Set the Unirate API Key
 
 To get a free API key, register at [https://unirateapi.com](https://unirateapi.com). Once registered, you'll find your API key in your account settings.
 
 You can either:
 
-- **Replace** `${UNIRATE_API_KEY}` **directly in** `application.yml` (for quick local testing):
+A) **Replace** `${UNIRATE_API_KEY}` **directly in** `application.yml` (for quick local testing):
 
-    ```yaml
-    currency:
-      unirate:
-        api-key: your-api-key-here
-    ```
+```yaml
+currency:
+  unirate:
+    api-key: your-api-key-here
+```
 
-- **Or set the** `UNIRATE_API_KEY` **as an environment variable** (recommended):
-  * On macOS/Linux:
+B) **Or set the** `UNIRATE_API_KEY` **as an environment variable** (recommended):
 
-    ```bash
-    export UNIRATE_API_KEY=your_actual_key
-    ```
+* On macOS/Linux:
 
-  * On Windows (CMD):
+```bash
+export UNIRATE_API_KEY=your_actual_key
+```
 
-    ```cmd
-    set UNIRATE_API_KEY=your_actual_key
-    ```
+* On Windows (CMD):
 
-  * On Windows (PowerShell):
+```cmd
+set UNIRATE_API_KEY=your_actual_key
+```
 
-    ```powershell
-    $env:UNIRATE_API_KEY = "your_actual_key"
-    ```
+* On Windows (PowerShell):
 
-3. **Build and run the application**
+```powershell
+$env:UNIRATE_API_KEY = "your_actual_key"
+```
 
-   ```bash
-   ./mvnw spring-boot:run
-   ```
+### 3. Run the Application
 
----
+#### Option A: Using Maven
+
+```bash
+./mvnw spring-boot:run
+```
+
+To preload test data with dev profile:
+
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+Then call:
+
+```http
+POST http://localhost:8080/api/v1/test-data
+```
+
+#### Option B: Using JAR
+
+If you prefer running as a standalone JAR:
+
+```bash
+./mvnw clean package
+java -jar target/fundraiser-0.0.1-SNAPSHOT.jar
+```
+
+To preload test data with dev profile:
+
+```bash
+java -jar target/fundraiser-0.0.1-SNAPSHOT.jar --spring.profiles.active=dev
+```
+
+Then call:
+
+```http
+POST http://localhost:8080/api/v1/test-data
+```
 
 ## Running Tests
 
@@ -93,19 +127,22 @@ To run the test suite:
 
 ---
 
+
 ## API Overview
 
-| Endpoint                                   | Method   | Description                                     |
-| ------------------------------------------ | -------- | ----------------------------------------------- |
-| `/api/v1/events`                           | `POST`   | Create a new fundraising event                  |
-| `/api/v1/events`                           | `GET`    | Get financial report for all events             |
-| `/api/v1/boxes`                            | `POST`   | Register a new collection box                   |
-| `/api/v1/boxes`                            | `GET`    | List all boxes with assignment and empty status |
-| `/api/v1/boxes/{id}`                       | `DELETE` | Unregister a box                                |
-| `/api/v1/boxes/{id_box}/events/{id_event}` | `PUT`    | Assign a box to an event                        |
-| `/api/v1/boxes/{id}/add-money`             | `PUT`    | Add money to a box                              |
-| `/api/v1/boxes/{id}/empty`                 | `POST`   | Transfer box funds to event account             |
-| `/api/v1/currencies`                       | `GET`    | List all available currencies                   |
+| Endpoint                              | Method   | Description                                     |
+| ------------------------------------- | -------- | ----------------------------------------------- |
+| `/api/v1/events`                      | `GET`    | Get financial report for all events             |
+| `/api/v1/events/table`                | `GET`    | Get financial report as styled HTML             |
+| `/api/v1/events`                      | `POST`   | Create a new fundraising event                  |
+| `/api/v1/boxes`                       | `GET`    | List all boxes with assignment and empty status |
+| `/api/v1/boxes`                       | `POST`   | Register a new collection box                   |
+| `/api/v1/boxes/{id}`                  | `DELETE` | Unregister a box                                |
+| `/api/v1/boxes/{id}/assign?eventId=x` | `PATCH`  | Assign a box to an event                        |
+| `/api/v1/boxes/{id}/add-money`        | `PUT`    | Add money to a box                              |
+| `/api/v1/boxes/{id}/empty`            | `POST`   | Transfer box funds to event account             |
+| `/api/v1/currencies`                  | `GET`    | List all available currencies                   |
+| `/api/v1/test-data`                   | `POST`   | Load pre-configured test data into the system   |
 
 ---
 
@@ -118,27 +155,6 @@ http://localhost:8080/swagger-ui/index.html
 ```
 
 You can test and explore all endpoints via the Swagger UI.
-
----
-
-## Project Structure
-
-```
-com.vb.fundraiser
-├── client              # API client for Unirate currency conversion
-├── config              # Configuration beans
-├── controller          # REST controllers
-├── exception           # Custom exceptions and global handler
-├── init                # Currency initializer
-├── model
-│   ├── common          # Common models
-│   ├── dto             # Data Transfer Objects
-│   ├── entity          # JPA entities
-│   ├── request         # Request payloads
-├── repository          # Spring Data JPA repositories
-├── service             # Business logic and service layer
-└── FundraiserApplication.java
-```
 
 ---
 
